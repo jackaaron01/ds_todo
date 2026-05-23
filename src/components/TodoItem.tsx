@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, memo } from "react";
 import { motion } from "framer-motion";
 import type { Todo } from "@/types";
 import { getDateLabel } from "@/lib/utils";
@@ -22,7 +22,7 @@ interface TodoItemProps {
   index: number;
 }
 
-export default function TodoItem({
+const TodoItem = memo(function TodoItem({
   todo,
   onToggle,
   onDelete,
@@ -44,11 +44,13 @@ export default function TodoItem({
     { id: number; x: number; y: number }[]
   >([]);
   const rippleCounter = useRef(0);
+  const rippleTimeouts = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const dateLabel = getDateLabel(todo.dueDate);
   const subDone = todo.subtasks.filter((s) => s.done).length;
   const subTotal = todo.subtasks.length;
-  const hasExtra = subTotal > 0 || todo.note;
+  const hasExtra = subTotal > 0 || !!todo.note;
 
   const addRipple = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -57,13 +59,14 @@ export default function TodoItem({
       ...prev,
       { id, x: e.clientX - rect.left, y: e.clientY - rect.top },
     ]);
-    setTimeout(
+    const timeout = setTimeout(
       () => setRipples((prev) => prev.filter((r) => r.id !== id)),
       600
     );
+    rippleTimeouts.current.set(id, timeout);
   }, []);
 
-  const handleEditSubmit = () => {
+  const handleEditSubmit = useCallback(() => {
     const trimmed = editText.trim();
     if (!trimmed) {
       onDelete(todo.id);
@@ -71,7 +74,13 @@ export default function TodoItem({
       onUpdateText(todo.id, trimmed);
     }
     setEditing(false);
-  };
+  }, [editText, todo.id, onDelete, onUpdateText]);
+
+  const startEditing = useCallback(() => {
+    setEditText(todo.text);
+    setEditing(true);
+    requestAnimationFrame(() => editInputRef.current?.select());
+  }, [todo.text]);
 
   return (
     <motion.div
@@ -116,12 +125,20 @@ export default function TodoItem({
         ))}
 
         {/* Drag handle */}
-        <span className="text-[var(--text-muted)] cursor-grab active:cursor-grabbing select-none text-base tracking-[-2px] leading-none py-0.5 hover:text-[var(--accent)] transition-colors">
+        <span
+          className="text-[var(--text-muted)] cursor-grab active:cursor-grabbing select-none text-base tracking-[-2px] leading-none py-0.5 hover:text-[var(--accent)] transition-colors"
+          aria-label="拖拽排序"
+          role="button"
+          tabIndex={0}
+        >
           ⋮⋮
         </span>
 
         {/* Checkbox */}
         <button
+          role="checkbox"
+          aria-checked={todo.done}
+          aria-label={`${todo.done ? "取消完成" : "完成"} ${todo.text}`}
           onClick={(e) => {
             addRipple(e);
             onToggle(todo.id);
@@ -149,6 +166,7 @@ export default function TodoItem({
         <div className="flex-1 min-w-0">
           {editing ? (
             <input
+              ref={editInputRef}
               autoFocus
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
@@ -161,11 +179,17 @@ export default function TodoItem({
             />
           ) : (
             <span
-              onDoubleClick={() => {
-                setEditText(todo.text);
-                setEditing(true);
+              tabIndex={0}
+              role="button"
+              aria-label={`编辑 ${todo.text}`}
+              onDoubleClick={startEditing}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "F2") {
+                  e.preventDefault();
+                  startEditing();
+                }
               }}
-              className={`text-[15px] break-all outline-none rounded px-1 py-0.5 select-none ${
+              className={`text-[15px] break-all outline-none rounded px-1 py-0.5 select-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
                 todo.done
                   ? "line-through text-[var(--text-muted)]"
                   : "text-[var(--text)]"
@@ -176,7 +200,7 @@ export default function TodoItem({
           )}
 
           {/* Meta badges */}
-          {(dateLabel || subTotal > 0 || todo.note) && (
+          {(dateLabel || subTotal > 0 || !!todo.note) && (
             <div className="flex gap-1.5 mt-1 flex-wrap items-center">
               {dateLabel && (
                 <span
@@ -204,6 +228,7 @@ export default function TodoItem({
                 <button
                   onClick={() => setExpanded(!expanded)}
                   className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors"
+                  aria-label="查看备注"
                 >
                   📝
                 </button>
@@ -218,17 +243,17 @@ export default function TodoItem({
             addRipple(e);
             onTogglePin(todo.id);
           }}
+          aria-label={todo.pinned ? "取消置顶" : "置顶"}
           className={`w-[26px] h-[26px] flex items-center justify-center rounded-full transition-all duration-200 text-sm
             ${todo.pinned ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--hover-bg)]"}`}
-          title="置顶"
         >
           📌
         </button>
 
         <button
           onClick={() => setExpanded(!expanded)}
+          aria-label={expanded ? "收起" : "展开"}
           className={`w-[26px] h-[26px] flex items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--hover-bg)] transition-all duration-200 text-sm ${!hasExtra ? "invisible" : ""}`}
-          title="展开"
         >
           {expanded ? "▾" : "▸"}
         </button>
@@ -238,8 +263,8 @@ export default function TodoItem({
             addRipple(e);
             onDelete(todo.id);
           }}
-          className="w-[30px] h-[30px] flex items-center justify-center rounded-full text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-200 opacity-0 group-hover:opacity-100 text-lg"
-          aria-label="删除"
+          aria-label={`删除 ${todo.text}`}
+          className="w-[30px] h-[30px] flex items-center justify-center rounded-full text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-200 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-lg"
         >
           ×
         </button>
@@ -258,4 +283,6 @@ export default function TodoItem({
       )}
     </motion.div>
   );
-}
+});
+
+export default TodoItem;

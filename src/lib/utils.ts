@@ -1,3 +1,5 @@
+import type { Todo } from "@/types";
+
 export interface DateLabel {
   text: string;
   cls: "overdue" | "today" | "upcoming";
@@ -20,4 +22,16 @@ export function getDateLabel(dateStr: string): DateLabel | null {
 export function priorityWeight(p: string): number {
   const w: Record<string, number> = { high: 0, medium: 1, low: 2 };
   return p && w[p] !== undefined ? w[p] : 3;
+}
+
+export function exportTodos(todos: Todo[]): void {
+  const blob = new Blob([JSON.stringify(todos, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "todos-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
 }

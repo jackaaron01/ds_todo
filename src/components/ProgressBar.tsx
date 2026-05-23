@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import type { Todo } from "@/types";
 
 interface ProgressBarProps {
-  todos: Todo[];
+  total: number;
+  done: number;
+  allDone: boolean;
 }
 
-export default function ProgressBar({ todos }: ProgressBarProps) {
-  const total = todos.length;
-  const done = todos.filter((t) => t.done).length;
+const ProgressBar = memo(function ProgressBar({ total, done, allDone }: ProgressBarProps) {
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-  const allDone = total > 0 && done === total;
   const [pulse, setPulse] = useState(false);
   const prevPct = useRef(pct);
 
@@ -49,4 +47,6 @@ export default function ProgressBar({ todos }: ProgressBarProps) {
       </span>
     </motion.div>
   );
-}
+});
+
+export default ProgressBar;

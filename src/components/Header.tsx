@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion } from "framer-motion";
 
 interface HeaderProps {
@@ -7,7 +8,7 @@ interface HeaderProps {
   onToggleTheme: () => void;
 }
 
-export default function Header({ theme, onToggleTheme }: HeaderProps) {
+const Header = memo(function Header({ theme, onToggleTheme }: HeaderProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -16 }}
@@ -33,4 +34,6 @@ export default function Header({ theme, onToggleTheme }: HeaderProps) {
       </motion.button>
     </motion.div>
   );
-}
+});
+
+export default Header;

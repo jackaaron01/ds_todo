@@ -1,7 +1,25 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import type { SortMode, FilterMode } from "@/types";
+import { memo, useState, useRef, useEffect, useCallback } from "react";
+import type { SortMode, FilterMode, Todo } from "@/types";
+
+const FILTERS: { value: FilterMode; label: string }[] = [
+  { value: "all", label: "全部" },
+  { value: "active", label: "未完成" },
+  { value: "completed", label: "已完成" },
+];
+
+const SORTS: { value: SortMode; label: string }[] = [
+  { value: "manual", label: "手动排序" },
+  { value: "priority", label: "按优先级" },
+  { value: "date", label: "按日期" },
+];
+
+const SORT_LABELS: Record<SortMode, string> = {
+  manual: "手动排序",
+  priority: "按优先级",
+  date: "按日期",
+};
 
 interface ToolbarProps {
   searchQuery: string;
@@ -12,11 +30,12 @@ interface ToolbarProps {
   onSortChange: (m: SortMode) => void;
   onClearCompleted: () => void;
   onExport: () => void;
-  onImport: (data: any[]) => void;
+  onImport: (data: Todo[]) => void;
   hasCompleted: boolean;
+  searchRef: React.RefObject<HTMLInputElement | null>;
 }
 
-export default function Toolbar({
+const Toolbar = memo(function Toolbar({
   searchQuery,
   onSearchChange,
   filter,
@@ -27,16 +46,11 @@ export default function Toolbar({
   onExport,
   onImport,
   hasCompleted,
+  searchRef,
 }: ToolbarProps) {
   const [sortOpen, setSortOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const sortLabels: Record<SortMode, string> = {
-    manual: "手动排序",
-    priority: "按优先级",
-    date: "按日期",
-  };
 
   useEffect(() => {
     if (sortOpen) {
@@ -60,7 +74,7 @@ export default function Toolbar({
           const data = JSON.parse(reader.result as string);
           if (Array.isArray(data)) onImport(data);
         } catch {
-          // Invalid file
+          alert("文件格式无效，请选择 JSON 备份文件。");
         }
       };
       reader.readAsText(file);
@@ -69,21 +83,10 @@ export default function Toolbar({
     [onImport]
   );
 
-  const filters: { value: FilterMode; label: string }[] = [
-    { value: "all", label: "全部" },
-    { value: "active", label: "未完成" },
-    { value: "completed", label: "已完成" },
-  ];
-
-  const sorts: { value: SortMode; label: string }[] = [
-    { value: "manual", label: "手动排序" },
-    { value: "priority", label: "按优先级" },
-    { value: "date", label: "按日期" },
-  ];
-
   return (
     <div className="flex gap-1.5 items-center mb-3 flex-wrap">
       <input
+        ref={searchRef}
         type="text"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
@@ -95,7 +98,7 @@ export default function Toolbar({
                    transition-all duration-200"
       />
 
-      {filters.map((f) => (
+      {FILTERS.map((f) => (
         <button
           key={f.value}
           onClick={() => onFilterChange(f.value)}
@@ -119,7 +122,7 @@ export default function Toolbar({
                      bg-[var(--surface)] text-[var(--text-secondary)]
                      hover:bg-[var(--hover-bg)] transition-all duration-200"
         >
-          {sortLabels[sortMode]} ▾
+          {SORT_LABELS[sortMode]} ▾
         </button>
         {sortOpen && (
           <div
@@ -127,7 +130,7 @@ export default function Toolbar({
                         shadow-xl overflow-hidden z-50 min-w-[110px]
                         animate-[menuIn_0.2s_ease] origin-top-left"
           >
-            {sorts.map((s) => (
+            {SORTS.map((s) => (
               <button
                 key={s.value}
                 onClick={() => {
@@ -189,4 +192,6 @@ export default function Toolbar({
       </button>
     </div>
   );
-}
+});
+
+export default Toolbar;

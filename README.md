@@ -84,21 +84,22 @@ src/
 │   ├── globals.css         # Tailwind v4 + CSS 自定义属性 + keyframes
 │   ├── layout.tsx          # 根布局 + 防闪烁主题注入脚本
 │   └── page.tsx            # 唯一客户端页面，组合所有组件
-├── components/             # 8 个 React 组件（全部 "use client"）
+├── components/             # 10 个 React 组件（全部 "use client"）
 │   ├── Header.tsx          # 标题 + 主题切换旋转动画
 │   ├── TodoInput.tsx       # 文本输入 + 日期选择 + 优先级按钮
 │   ├── Toolbar.tsx         # 搜索 + 筛选标签 + 排序菜单 + 导出/导入
 │   ├── ProgressBar.tsx     # 动画进度条 (framer-motion)
 │   ├── TodoList.tsx        # AnimatePresence 包裹的列表
 │   ├── TodoItem.tsx        # 单条 todo — 拖拽/编辑/子任务/涟漪
-│   ├── SubtaskSection.tsx  # 可展开子任务 + 备注
+│   ├── SubtaskSection.tsx  # 可展开子任务 + 备注（300ms 防抖）
 │   ├── Toast.tsx           # 撤销删除弹窗 (spring 动画)
-│   └── Confetti.tsx        # 60 粒子彩带
-├── hooks/                  # 3 个自定义 Hook
+│   ├── Confetti.tsx        # 60 粒子彩带
+│   └── ErrorBoundary.tsx   # 错误边界 — 崩溃时显示刷新按钮
+├── hooks/                  # 3 个自定义 Hook + 排序工具
 │   ├── useTodos.ts         # 核心状态 — CRUD + localStorage 持久化
 │   ├── useTheme.ts         # 暗色模式 — 系统偏好 + 手动切换
-│   ├── useUndo.ts          # 撤销栈 — 4 秒自动消失
-│   └── sortUtils.ts        # 排序算法 — manual/priority/date
+│   ├── useUndo.ts          # 撤销栈 — useRef 优化，4 秒自动消失
+│   └── sortUtils.ts        # 排序算法 — 单趟比较器，manual/priority/date
 ├── types/index.ts          # Todo, SubTask, SortMode 等类型
 └── lib/utils.ts            # getDateLabel, priorityWeight 纯函数
 ```
@@ -127,7 +128,7 @@ interface Todo {
 
 ### 状态管理
 
-所有状态由 `useTodos` hook 统一管理，通过 props 向下传递回调函数，无外部状态库依赖。
+所有状态由 `useTodos` hook 统一管理，通过 props 向下传递回调函数。全部 10 个组件使用 `React.memo` + `useCallback` 优化，避免不必要的重渲染。无外部状态库依赖。
 
 ### 主题系统
 
@@ -146,8 +147,8 @@ interface Todo {
 ### 桌面打包
 
 - **Electron 42** — `electron/main.js` 主进程 + `electron/preload.js` 预加载
-- **electron-builder** — 打包为 Windows 便携版 (portable) + 安装程序 (NSIS)
-- **Next.js static export** — `output: "export"` 生成纯静态文件供电子加载
+- **electron-builder** — 打包为 Windows 便携版 (portable, 88 MB) + 安装程序 (NSIS)
+- **Next.js static export** — `output: "export"` 生成纯静态文件，零运行时依赖
 - 签名需管理员权限（Windows 软链接限制）
 
 ---
@@ -167,11 +168,11 @@ interface Todo {
 
 ## 项目统计
 
-- **源文件**: 19 个 (.tsx / .ts / .css)
-- **React 组件**: 9 个
+- **源文件**: 20 个 (.tsx / .ts / .css / .js)
+- **React 组件**: 10 个（含 ErrorBoundary 错误边界）
 - **自定义 Hook**: 3 个
-- **代码行数**: ~2000+
-- **打包体积**: ~131 MB (包含 Chromium + Node.js)
+- **代码行数**: ~2200+
+- **打包体积**: ~88 MB (包含 Chromium + Node.js，零运行时依赖)
 
 ---
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Todo } from "@/types";
 import TodoItem from "./TodoItem";
@@ -17,7 +18,7 @@ interface TodoListProps {
   onReorder: (srcId: number, tgtId: number) => void;
 }
 
-export default function TodoList({
+const TodoList = memo(function TodoList({
   todos,
   onToggle,
   onDelete,
@@ -91,4 +92,6 @@ export default function TodoList({
       </AnimatePresence>
     </div>
   );
-}
+});
+
+export default TodoList;

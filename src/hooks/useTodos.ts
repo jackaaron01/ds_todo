@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import type { Todo, SortMode, FilterMode, Priority, SubTask } from "@/types";
-import { sortTodos } from "./sortUtils";
+import { useState, useEffect, useCallback } from "react";
+import type { Todo, Priority } from "@/types";
 
 const STORAGE_KEY = "todosV2";
+
+let _nextId = Date.now();
+function generateId(): number {
+  const now = Date.now();
+  _nextId = Math.max(now, _nextId + 1);
+  return _nextId;
+}
 
 function loadTodos(): Todo[] {
   if (typeof window === "undefined") return [];
@@ -15,12 +21,12 @@ function loadTodos(): Todo[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.map(
       (t: Partial<Todo>): Todo => ({
-        id: t.id ?? Date.now(),
+        id: t.id ?? generateId(),
         text: t.text ?? "",
         done: t.done ?? false,
         priority: (t.priority || "") as Todo["priority"],
         dueDate: t.dueDate || "",
-        order: t.order ?? Date.now(),
+        order: t.order ?? generateId(),
         pinned: t.pinned ?? false,
         note: t.note || "",
         subtasks: t.subtasks || [],
@@ -45,11 +51,6 @@ export function useTodos() {
     setMounted(true);
   }, []);
 
-  const save = useCallback((next: Todo[]) => {
-    setTodos(next);
-    saveTodos(next);
-  }, []);
-
   const addTodo = useCallback(
     (text: string, priority: Priority, dueDate: string) => {
       setTodos((prev) => {
@@ -57,7 +58,7 @@ export function useTodos() {
         const next = [
           ...prev,
           {
-            id: Date.now(),
+            id: generateId(),
             text,
             done: false,
             priority,
@@ -132,7 +133,7 @@ export function useTodos() {
               ...t,
               subtasks: [
                 ...t.subtasks,
-                { id: Date.now(), text, done: false },
+                { id: generateId(), text, done: false },
               ],
             }
           : t
@@ -206,7 +207,7 @@ export function useTodos() {
       const existingIds = new Set(prev.map((t) => t.id));
       const merged = [...prev];
       data.forEach((t) => {
-        t.order = t.order ?? Date.now();
+        t.order = t.order ?? generateId();
         t.priority = t.priority || "";
         t.dueDate = t.dueDate || "";
         t.pinned = t.pinned || false;
@@ -219,20 +220,6 @@ export function useTodos() {
       saveTodos(merged);
       return merged;
     });
-  }, []);
-
-  const replaceTodos = useCallback((data: Todo[]) => {
-    const processed: Todo[] = data.map((t) => ({
-      ...t,
-      order: t.order ?? Date.now(),
-      priority: (t.priority || "") as Todo["priority"],
-      dueDate: t.dueDate || "",
-      pinned: t.pinned ?? false,
-      note: t.note || "",
-      subtasks: t.subtasks || [],
-    }));
-    saveTodos(processed);
-    setTodos(processed);
   }, []);
 
   return {
@@ -251,6 +238,5 @@ export function useTodos() {
     clearCompleted,
     restoreTodo,
     importTodos,
-    replaceTodos,
   };
 }

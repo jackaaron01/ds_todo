@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { memo, useState, useCallback } from "react";
 import type { Priority } from "@/types";
 
 interface TodoInputProps {
   onAdd: (text: string, priority: Priority, dueDate: string) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const PRIORITIES: { value: Priority; label: string; dot?: string }[] = [
@@ -14,12 +15,11 @@ const PRIORITIES: { value: Priority; label: string; dot?: string }[] = [
   { value: "low", label: "低", dot: "⚪" },
 ];
 
-export default function TodoInput({ onAdd }: TodoInputProps) {
+const TodoInput = memo(function TodoInput({ onAdd, inputRef }: TodoInputProps) {
   const [text, setText] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<Priority>("");
   const [shake, setShake] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleAdd = useCallback(() => {
     if (!text.trim()) {
@@ -31,7 +31,7 @@ export default function TodoInput({ onAdd }: TodoInputProps) {
     setText("");
     setDueDate("");
     inputRef.current?.focus();
-  }, [text, priority, dueDate, onAdd]);
+  }, [text, priority, dueDate, onAdd, inputRef]);
 
   return (
     <div className="space-y-2 mb-4">
@@ -79,6 +79,7 @@ export default function TodoInput({ onAdd }: TodoInputProps) {
           <button
             key={p.value}
             onClick={() => setPriority(p.value)}
+            aria-label={p.label}
             className={`px-3 py-1 rounded-full text-xs font-medium
                         border-[1.5px] transition-all duration-200
                         ${
@@ -94,4 +95,6 @@ export default function TodoInput({ onAdd }: TodoInputProps) {
       </div>
     </div>
   );
-}
+});
+
+export default TodoInput;

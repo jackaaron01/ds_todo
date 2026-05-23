@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Todo } from "@/types";
 
@@ -9,7 +10,7 @@ interface ToastProps {
   onUndo: () => void;
 }
 
-export default function Toast({ visible, todo, onUndo }: ToastProps) {
+const Toast = memo(function Toast({ visible, todo, onUndo }: ToastProps) {
   return (
     <AnimatePresence>
       {visible && todo && (
@@ -34,4 +35,6 @@ export default function Toast({ visible, todo, onUndo }: ToastProps) {
       )}
     </AnimatePresence>
   );
-}
+});
+
+export default Toast;

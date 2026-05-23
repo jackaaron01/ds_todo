@@ -1,49 +1,36 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Todo } from "@/types";
 
 export function useUndo() {
   const [undoData, setUndoData] = useState<Todo | null>(null);
   const [visible, setVisible] = useState(false);
-  const [timeoutId, setTimeoutId] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [timeoutId]);
+  }, []);
 
-  const showUndo = useCallback(
-    (todo: Todo) => {
-      if (timeoutId) clearTimeout(timeoutId);
-      setUndoData(todo);
-      setVisible(true);
-      const id = setTimeout(() => {
-        setVisible(false);
-        setUndoData(null);
-      }, 4000);
-      setTimeoutId(id);
-    },
-    [timeoutId]
-  );
-
-  const hideUndo = useCallback(() => {
-    if (timeoutId) clearTimeout(timeoutId);
-    setVisible(false);
-    setUndoData(null);
-  }, [timeoutId]);
+  const showUndo = useCallback((todo: Todo) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setUndoData(todo);
+    setVisible(true);
+    timeoutRef.current = setTimeout(() => {
+      setVisible(false);
+      setUndoData(null);
+    }, 4000);
+  }, []);
 
   const popUndo = useCallback((): Todo | null => {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     const data = undoData;
     setUndoData(null);
     setVisible(false);
     return data;
-  }, [undoData, timeoutId]);
+  }, [undoData]);
 
-  return { undoData, visible, showUndo, hideUndo, popUndo };
+  return { undoData, visible, showUndo, popUndo };
 }

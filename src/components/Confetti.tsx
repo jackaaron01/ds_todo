@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 interface ConfettiProps {
   active: boolean;
@@ -18,7 +18,7 @@ const COLORS = [
 ];
 const SHAPES = ["■", "●", "▲", "★", "♦"];
 
-export default function Confetti({ active }: ConfettiProps) {
+const Confetti = memo(function Confetti({ active }: ConfettiProps) {
   const [pieces, setPieces] = useState<
     { id: number; left: string; top: string; size: number; color: string; shape: string; dur: number; delay: number }[]
   >([]);
@@ -66,4 +66,6 @@ export default function Confetti({ active }: ConfettiProps) {
       ))}
     </>
   );
-}
+});
+
+export default Confetti;

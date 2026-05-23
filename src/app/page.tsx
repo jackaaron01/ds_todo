@@ -2,11 +2,12 @@
 
 import { useMemo, useCallback, useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import type { SortMode, FilterMode } from "@/types";
+import type { SortMode, FilterMode, Todo } from "@/types";
 import { useTodos } from "@/hooks/useTodos";
 import { useTheme } from "@/hooks/useTheme";
 import { useUndo } from "@/hooks/useUndo";
 import { sortTodos } from "@/hooks/sortUtils";
+import { exportTodos } from "@/lib/utils";
 import Header from "@/components/Header";
 import TodoInput from "@/components/TodoInput";
 import Toolbar from "@/components/Toolbar";
@@ -14,6 +15,7 @@ import ProgressBar from "@/components/ProgressBar";
 import TodoList from "@/components/TodoList";
 import Toast from "@/components/Toast";
 import Confetti from "@/components/Confetti";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function Home() {
   const {
@@ -39,6 +41,9 @@ export default function Home() {
   const todosRef = useRef(todos);
   todosRef.current = todos;
 
+  const searchRef = useRef<HTMLInputElement>(null);
+  const addInputRef = useRef<HTMLInputElement>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<FilterMode>("all");
   const [sortMode, setSortMode] = useState<SortMode>(() => {
@@ -53,11 +58,9 @@ export default function Home() {
   const displayedTodos = useMemo(() => {
     let list = sortTodos(todos, sortMode);
 
-    // Filter
     if (filter === "active") list = list.filter((t) => !t.done);
     if (filter === "completed") list = list.filter((t) => t.done);
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter((t) => t.text.toLowerCase().includes(q));
@@ -106,7 +109,7 @@ export default function Home() {
 
   // Handle import
   const handleImport = useCallback(
-    (data: any[]) => {
+    (data: Todo[]) => {
       importTodos(data);
     },
     [importTodos]
@@ -118,24 +121,16 @@ export default function Home() {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key === "k") {
         e.preventDefault();
-        document
-          .querySelector<HTMLInputElement>('input[placeholder*="搜索"]')
-          ?.focus();
+        searchRef.current?.focus();
       }
       if (mod && e.key === "n") {
         e.preventDefault();
-        document
-          .querySelector<HTMLInputElement>('input[placeholder*="添加"]')
-          ?.focus();
+        addInputRef.current?.focus();
       }
       if (e.key === "Escape") {
         const active = document.activeElement;
-        if (
-          active instanceof HTMLInputElement &&
-          (active.placeholder.includes("搜索") ||
-            active.placeholder.includes("添加"))
-        ) {
-          active.blur();
+        if (active === searchRef.current || active === addInputRef.current) {
+          (active as HTMLInputElement).blur();
         }
       }
     };
@@ -168,68 +163,58 @@ export default function Home() {
   }
 
   return (
-    <div className="flex justify-center pt-10 pb-24 px-4 relative min-h-screen">
-      <div className="w-full max-w-[560px] relative z-10">
-        <Header theme={theme} onToggleTheme={toggleTheme} />
+    <ErrorBoundary>
+      <div className="flex justify-center pt-10 pb-24 px-4 relative min-h-screen">
+        <div className="w-full max-w-[560px] relative z-10">
+          <Header theme={theme} onToggleTheme={toggleTheme} />
 
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-        >
-          <TodoInput onAdd={addTodo} />
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+          >
+            <TodoInput onAdd={addTodo} inputRef={addInputRef} />
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
-          <Toolbar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            filter={filter}
-            onFilterChange={setFilter}
-            sortMode={sortMode}
-            onSortChange={handleSortChange}
-            onClearCompleted={clearCompleted}
-            onExport={() => {
-              const blob = new Blob([JSON.stringify(todos, null, 2)], {
-                type: "application/json",
-              });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download =
-                "todos-backup-" +
-                new Date().toISOString().slice(0, 10) +
-                ".json";
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-            onImport={handleImport}
-            hasCompleted={hasCompleted}
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            <Toolbar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              filter={filter}
+              onFilterChange={setFilter}
+              sortMode={sortMode}
+              onSortChange={handleSortChange}
+              onClearCompleted={clearCompleted}
+              onExport={() => exportTodos(todos)}
+              onImport={handleImport}
+              hasCompleted={hasCompleted}
+              searchRef={searchRef}
+            />
+          </motion.div>
+
+          <ProgressBar total={total} done={done} allDone={allDone} />
+
+          <TodoList
+            todos={displayedTodos}
+            onToggle={toggleTodo}
+            onDelete={handleDelete}
+            onUpdateText={updateTodoText}
+            onTogglePin={togglePin}
+            onAddSubtask={addSubtask}
+            onToggleSubtask={toggleSubtask}
+            onDeleteSubtask={deleteSubtask}
+            onUpdateNote={updateNote}
+            onReorder={reorder}
           />
-        </motion.div>
+        </div>
 
-        <ProgressBar todos={todos} />
-
-        <TodoList
-          todos={displayedTodos}
-          onToggle={toggleTodo}
-          onDelete={handleDelete}
-          onUpdateText={updateTodoText}
-          onTogglePin={togglePin}
-          onAddSubtask={addSubtask}
-          onToggleSubtask={toggleSubtask}
-          onDeleteSubtask={deleteSubtask}
-          onUpdateNote={updateNote}
-          onReorder={reorder}
-        />
+        <Toast visible={visible} todo={undoData} onUndo={handleUndo} />
+        <Confetti key={confettiKey} active={allDone} />
       </div>
-
-      <Toast visible={visible} todo={undoData} onUndo={handleUndo} />
-      <Confetti key={confettiKey} active={allDone} />
-    </div>
+    </ErrorBoundary>
   );
 }
