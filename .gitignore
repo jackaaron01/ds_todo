@@ -36,6 +36,18 @@ yarn-error.log*
 # vercel
 .vercel
 
+# electron build
+/release/
+/ds_todo_portable.exe
+
+# backup
+/.backup/
+
+# scripts
+/generate_ppt.py
+/build_log.txt
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/build_log.txt

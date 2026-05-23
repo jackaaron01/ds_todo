@@ -1,12 +1,55 @@
 {
-  "name": "todo",
-  "version": "0.1.0",
+  "name": "ds-todo",
+  "version": "1.0.0",
   "private": true,
+  "description": "功能丰富的待办事项桌面应用",
+  "author": "jackaaron01",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
+    "dev:electron": "concurrently \"next dev\" \"wait-on tcp:3000 && electron . --dev\"",
     "build": "next build",
+    "build:electron": "next build && electron-builder --win portable",
+    "build:electron:setup": "next build && electron-builder --win nsis",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.ds-todo.app",
+    "productName": "ds_todo",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        },
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "electron/icon.png"
+    },
+    "portable": {
+      "artifactName": "ds_todo_portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "ds_todo_setup.exe",
+      "installerIcon": "electron/icon.png",
+      "uninstallerIcon": "electron/icon.png"
+    }
   },
   "dependencies": {
     "framer-motion": "^12.40.0",
@@ -19,9 +62,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.10"
   }
 }
